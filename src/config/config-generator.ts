@@ -13,7 +13,7 @@ const defaultGlobalColumnStrategy = {
   EMAIL_FAKE: ["email"],
   HASH_SHA256: ["phone", "mobile", "username"],
   REDACT: ["address"],
-  SET_NULL: ["raw_payload", "debug_info"],
+  SET_NULL: ["raw_payload"],
 };
 
 
