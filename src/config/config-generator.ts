@@ -12,7 +12,7 @@ const defaultGlobalColumnStrategy = {
   KEEP: ["id", "created_at", "updated_at", "status", "type"],
   EMAIL_FAKE: ["email"],
   HASH_SHA256: ["phone", "mobile", "username"],
-  REDACT: ["name", "address", "notes"],
+  REDACT: ["address"],
   SET_NULL: ["raw_payload", "debug_info"],
 };
 
