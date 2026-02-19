@@ -1,18 +1,31 @@
 {
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.0.0",
     "@types/node": "^25.0.10",
     "@types/pg": "^8.16.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
+    "express": "^5.2.1",
     "js-yaml": "^4.1.1",
+    "jszip": "^3.10.1",
+    "multer": "^2.0.2",
     "pg": "^8.17.2",
     "yaml": "^2.8.2",
     "zod": "^4.3.6"
   },
   "scripts": {
-    "anonymize": "ts-node src/main.ts"
+    "anonymize": "ts-node src/main.ts",
+    "platform:api": "ts-node src/api/server.ts",
+    "platform:ui": "cd ui && npm run dev"
   }
 }

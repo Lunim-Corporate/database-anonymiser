@@ -1,0 +1,17 @@
+{
+  "name": "safe-data-platform-ui",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000"
+  },
+  "dependencies": {
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}

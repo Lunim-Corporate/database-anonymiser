@@ -15,22 +15,6 @@ const TableRuleZ = z.object({
   columns: z.array(ColumnRuleZ),
 });
 
-// const GeneratedConfigZ = z.object({
-//   version: z.literal(1),
-//   generatedAt: z.string(),
-//   reviewed: z.boolean(),
-//   scope: z.object({
-//     schema: z.string(),
-//     denylistTables: z.array(z.string()),
-//     allowlistTables: z.array(z.string()).optional(),
-//   }),
-//   samples: z.object({
-//     limit: z.number(),
-//     masked: z.boolean(),
-//   }),
-//   rules: z.array(TableRuleZ),
-// });
-
 const GeneratedConfigZ = z.object({
   version: z.literal(1),
   generatedAt: z.string(),
@@ -46,30 +30,29 @@ const GeneratedConfigZ = z.object({
     limit: z.number(),
     masked: z.boolean(),
   }),
-
-  // ✅ ADD THIS
-  column_strategy: z.record(
-    z.string(),
-    z.union([
-      z.array(z.string()),
-      z.record(z.string(), z.any())
-    ])
-  ),
-
+  column_strategy: z.record(z.string(), z.any()).optional(),
   rules: z.array(TableRuleZ),
 });
 
-
-export function writeYaml(filePath: string, obj: any) {
+export function toYamlString(obj: any) {
   const doc = new YAML.Document(obj);
   doc.contents = obj;
-  const text = doc.toString({ indent: 2 });
-  fs.writeFileSync(filePath, text, "utf8");
+  return doc.toString({ indent: 2 });
+}
+
+export function writeYaml(filePath: string, obj: any) {
+  fs.writeFileSync(filePath, toYamlString(obj), "utf8");
 }
 
 export function readGeneratedConfig(filePath: string): GeneratedConfig {
   const raw = fs.readFileSync(filePath, "utf8");
   const parsed = YAML.parse(raw);
+  const cfg = GeneratedConfigZ.parse(parsed);
+  return cfg as GeneratedConfig;
+}
+
+export function parseGeneratedConfigFromYamlString(yamlText: string): GeneratedConfig {
+  const parsed = YAML.parse(yamlText);
   const cfg = GeneratedConfigZ.parse(parsed);
   return cfg as GeneratedConfig;
 }
