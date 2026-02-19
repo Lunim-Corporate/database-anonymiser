@@ -1,126 +1,3 @@
-// import { useState } from "react";
-// import { api } from "../lib/api";
-// import { Stepper } from "../components/Stepper";
-// import { CodeBlock } from "../components/CodeBlock";
-
-// export default function Wizard() {
-//   const [step, setStep] = useState(0);
-//   const [projectId, setProjectId] = useState<string>("");
-//   const [conn, setConn] = useState("postgresql://user:pass@localhost:5432/tabb_dev");
-//   const [schema, setSchema] = useState("public");
-//   const [scan, setScan] = useState<any>(null);
-//   const [config, setConfig] = useState<any>(null);
-//   const [explanation, setExplanation] = useState("");
-//   const [dryrun, setDryrun] = useState<any>(null);
-//   const [cloneDbName, setCloneDbName] = useState("tabb_dev_anonymized");
-//   const [final, setFinal] = useState<any>(null);
-//   const [err, setErr] = useState("");
-
-//   async function run(fn: () => Promise<void>) {
-//     setErr("");
-//     try { await fn(); } catch(e:any) { setErr(e.message || String(e)); }
-//   }
-
-//   return (
-//     <main style={{ maxWidth: 900, margin: "40px auto", fontFamily: "system-ui" }}>
-//       <h1>V3 Wizard</h1>
-//       <Stepper step={step} />
-//       {err && <div style={{ background: "#ffe7e7", padding: 10, borderRadius: 8, marginBottom: 12 }}>
-//         <b>Error:</b> {err}
-//       </div>}
-
-//       {/* Step 1 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>1) Create Project</h2>
-//         <button onClick={() => run(async () => {
-//           const p = await api<any>("/projects", { method: "POST" });
-//           setProjectId(p.id);
-//           setStep(1);
-//         })}>Create</button>
-//         {projectId && <p>Project ID: <b>{projectId}</b></p>}
-//       </section>
-
-//       {/* Step 2 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>2) Connect Database (read-only credentials)</h2>
-//         <p>Client pastes a read-only Postgres connection string. For vendor mode, we can support pg_dump upload later.</p>
-//         <input style={{ width: "100%", padding: 8 }} value={conn} onChange={(e)=>setConn(e.target.value)} />
-//         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-//           <input style={{ padding: 8 }} value={schema} onChange={(e)=>setSchema(e.target.value)} />
-//           <button disabled={!projectId} onClick={() => run(async () => {
-//             await api(`/projects/${projectId}/connect`, {
-//               method: "POST",
-//               body: JSON.stringify({ connectionString: conn, schema })
-//             });
-//             setStep(2);
-//           })}>Save Connection</button>
-//         </div>
-//       </section>
-
-//       {/* Step 3 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>3) Scan Risk (schema + masked samples + AI)</h2>
-//         <button disabled={!projectId} onClick={() => run(async () => {
-//           const r = await api<any>(`/projects/${projectId}/scan`, { method: "POST" });
-//           setScan(r);
-//           setStep(3);
-//         })}>Run Scan</button>
-//         {scan && <CodeBlock text={JSON.stringify(scan, null, 2)} />}
-//       </section>
-
-//       {/* Step 4 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>4) Generate Recommended Plan (updates config)</h2>
-//         <button disabled={!projectId} onClick={() => run(async () => {
-//           const r = await api<any>(`/projects/${projectId}/plan`, { method: "POST" });
-//           setConfig(r.config);
-//           setStep(4);
-//         })}>Apply Recommendations</button>
-//         {config && <CodeBlock text={JSON.stringify(config.column_strategy || {}, null, 2)} />}
-//       </section>
-
-//       {/* Step 5 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>5) Explain My Data Safety (client-friendly)</h2>
-//         <button disabled={!projectId} onClick={() => run(async () => {
-//           const r = await api<any>(`/projects/${projectId}/explain`, { method: "POST" });
-//           setExplanation(r.explanation);
-//           setStep(5);
-//         })}>Generate Explanation</button>
-//         {explanation && <CodeBlock text={explanation} />}
-//       </section>
-
-//       {/* Step 6 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>6) Dryrun (rows, no commit)</h2>
-//         <button disabled={!projectId} onClick={() => run(async () => {
-//           const r = await api<any>(`/projects/${projectId}/dryrun`, { method: "POST" });
-//           setDryrun(r);
-//           setStep(6);
-//         })}>Run Dryrun</button>
-//         {dryrun && <CodeBlock text={JSON.stringify(dryrun, null, 2)} />}
-//       </section>
-
-//       {/* Step 7 */}
-//       <section style={{ marginBottom: 18 }}>
-//         <h2>7) Apply + Clone + Vendor Export + Proof</h2>
-//         <p>This creates a safe clone DB name, anonymizes it, exports vendor-safe SQL, and creates proof bundle.</p>
-//         <input style={{ padding: 8, width: "100%" }} value={cloneDbName} onChange={(e)=>setCloneDbName(e.target.value)} />
-//         <button disabled={!projectId} onClick={() => run(async () => {
-//           await api<any>(`/projects/${projectId}/apply`, {
-//             method: "POST",
-//             body: JSON.stringify({ cloneDbName, reviewed: true })
-//           });
-//           const f = await api<any>(`/projects/${projectId}/final`);
-//           setFinal(f);
-//           setStep(7);
-//         })}>Run Apply</button>
-//         {final && <CodeBlock text={JSON.stringify(final, null, 2)} />}
-//       </section>
-//     </main>
-//   );
-// }
-
 import { useMemo, useState } from "react";
 import { api } from "../lib/api";
 import { Stepper } from "../components/Stepper";
@@ -161,7 +38,7 @@ function downloadZipFromJson(
   zipFiles: { name: string; content: string }[],
   filename: string
 ) {
-  //const JSZip = require("jszip");
+  
   const zip = new JSZip();
 
   zipFiles.forEach((f) => {
@@ -175,18 +52,14 @@ function downloadZipFromJson(
 
 
 
-
 export default function Wizard() {
   const [step, setStep] = useState(0);
-
   const [projectId, setProjectId] = useState<string>("");
-
-  // Step 2 UI requirements
   const [conn, setConn] = useState(
     "postgresql://username:password@localhost:5432/database_name"
   );
 
-  // Status flags (disable buttons until done)
+  
   const [created, setCreated] = useState(false);
   const [connected, setConnected] = useState(false);
 
@@ -210,7 +83,6 @@ export default function Wizard() {
 
 
 
-
   // apply settings
   const [cloneDbName, setCloneDbName] = useState("tabb_dev_anonymized");
 
@@ -220,7 +92,7 @@ export default function Wizard() {
   const canCreate = true;
   const canConnect = created && !!projectId && conn.length > 10;
   const canGenerate = connected;
-  const canUploadConfig = configGenerated; // download first, then upload edited config
+  const canUploadConfig = configGenerated;
   const canExplain = configUploaded;
   const canDryrun = explanationDone;
   const canApply = dryrunDone;
@@ -493,59 +365,6 @@ const disabledButtonStyle: React.CSSProperties = {
           <code>anonymizer.config.yaml</code> and <code>anonymizer.samples.yaml</code>.
         </p>
 
-      
-        {/* <button
-          style={canGenerate ? primaryButtonStyle : disabledButtonStyle}
-          disabled={!canGenerate || aiStatus === "loading"}
-          onClick={() =>
-            run(async () => {
-              setAiStatus("loading");
-              setAiRecommendationYaml(null);
-              startProgressSimulation();
-
-              const API =
-                process.env.NEXT_PUBLIC_PLATFORM_API || "http://localhost:5050";
-
-              const res = await fetch(`${API}/projects/${projectId}/configGen`, {
-                method: "POST",
-              });
-
-              if (!res.ok) {
-                completeProgressSimulation();
-                setAiStatus("idle");
-                throw new Error(await res.text());
-              }
-
-              const json = await res.json();
-
-              // 🔥 1️⃣ DOWNLOAD ZIP IMMEDIATELY
-              if (json.download?.zip) {
-                downloadZipFromJson(
-                  json.download.zip,
-                  `anonymizer-configGen-${projectId}.zip`
-                );
-
-                setInfo("Default Config & samples downloaded. If you want, you can go ahead and edit this now or wait as AI recommendation analysis is still running...");
-                setConfigGenerated(true);
-                setStep(3);
-              }
-
-              // 🔥 2️⃣ NOW PROCESS AI RESULT (LLM still running feeling)
-              if (json.ai?.recommended_column_strategy) {
-                setAiRecommendationYaml(json.ai.recommended_column_strategy);
-                setAiStatus(json.ai.source === "llm" ? "llm" : "heuristic");
-              } else {
-                setAiStatus("idle");
-              }
-
-              // 🔥 3️⃣ FINISH PROGRESS AFTER AI RESULT HANDLED
-              completeProgressSimulation();
-            })
-          }
-
-        >
-          {aiStatus === "loading" ? "Generating…" : "Generate & Download"}
-        </button> */}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
 
@@ -636,7 +455,7 @@ const disabledButtonStyle: React.CSSProperties = {
             </div>
 
             <div style={{ marginTop: 8, fontSize: 13 }}>
-              ⏳ Running AI analysis… this may take some time.
+              ⏳ Running AI analysis… this may take few minutes.
             </div>
           </div>
         )}

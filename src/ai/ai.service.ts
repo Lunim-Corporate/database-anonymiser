@@ -1,110 +1,8 @@
-// import { heuristicScan } from "./ai.heuristics";
-// import { llmExplain, llmScan } from "./ai.llm";
-// import { AiScanResult } from "./ai.types";
-
-// export const aiService = {
-//   async classify(args: any): Promise<AiScanResult> {
-//     const llm = await llmScan(args);
-//     return llm ?? heuristicScan(args);
-//   },
-
-//   applyRecommendationsToConfig(config: any, rec: { column_strategy: Record<string, string[]> }) {
-//     // merge into config.column_strategy
-//     const next = { ...config };
-//     next.column_strategy = next.column_strategy || {};
-
-//     for (const [strategy, cols] of Object.entries(rec.column_strategy || {})) {
-//       const existing = Array.isArray(next.column_strategy[strategy]) ? next.column_strategy[strategy] : [];
-//       next.column_strategy[strategy] = Array.from(new Set([...existing, ...cols]));
-//     }
-//     return next;
-//   },
-
-//   async explainSafety(args: { config: any; ai: any }) {
-//     const llm = await llmExplain(args);
-//     if (llm) return llm;
-
-//     // heuristic explanation
-//     const { config, ai } = args;
-//     const cs = config.column_strategy || {};
-//     return `
-// This dataset is anonymized for non-production use.
-
-// What we anonymize:
-// - Emails: ${JSON.stringify(cs.EMAIL_FAKE || [])}
-// - Tokens/secrets: ${JSON.stringify(cs.SET_NULL || [])}
-// - Identifiers (hashed): ${JSON.stringify(cs.HASH_SHA256 || [])}
-// - Free-text / personal fields (redacted): ${JSON.stringify(cs.REDACT || [])}
-
-// Risk summary:
-// - High risk fields detected: ${ai?.riskSummary?.high ?? 0}
-// - Medium risk fields detected: ${ai?.riskSummary?.medium ?? 0}
-// - Low risk fields detected: ${ai?.riskSummary?.low ?? 0}
-
-// This is designed for development, QA, demos, and vendor sharing.
-// `.trim();
-//   },
-// };
-
-
-// import { llmScan } from "./ai.llm";
-// import { heuristicScan } from "./ai.heuristics";
-// import { AiRiskResult, AiExplainInput } from "./ai.types";
-
-// const cache = new Map<string, AiRiskResult>();
-
-// export const aiService = {
-//   async classify(input: {
-//     projectId?: string;
-//     schema: string;
-//     tables: any[];
-//     samples: any;
-//   }): Promise<AiRiskResult> {
-//     const key = input.projectId || JSON.stringify(input.tables);
-
-//     if (cache.has(key)) return cache.get(key)!;
-
-//     const llm = await llmScan(input.schema, input.tables, input.samples);
-
-//     const result = llm ?? heuristicScan(input.schema, input.tables);
-
-//     cache.set(key, result);
-//     return result;
-//   },
-
-//   async explainSafety({ config, ai }: AiExplainInput): Promise<string> {
-//     const high = Object.values(ai.riskByColumn).filter(v => v === "HIGH").length;
-//     const med = Object.values(ai.riskByColumn).filter(v => v === "MEDIUM").length;
-//     const low = Object.values(ai.riskByColumn).filter(v => v === "LOW").length;
-
-//     return `
-// This dataset has been anonymized for non-production use.
-
-// What was anonymized:
-// - Emails: ${ai.recommendations.EMAIL_FAKE?.join(", ") || "none"}
-// - Identifiers (hashed): ${ai.recommendations.HASH_SHA256?.join(", ") || "none"}
-// - Free-text fields (redacted): ${ai.recommendations.REDACT?.join(", ") || "none"}
-// - Tokens/secrets removed: ${ai.recommendations.SET_NULL?.join(", ") || "none"}
-
-// Risk summary:
-// - High risk fields detected: ${high}
-// - Medium risk fields detected: ${med}
-// - Low risk fields detected: ${low}
-
-// This dataset is suitable for development, QA, demos, and vendor sharing.
-// `.trim();
-//   },
-// };
-
-
-import { buildPlan } from "../planner/plan-builder";
-import { StrategyName } from "../config/generated-config.types";
 import { llmComplete  } from "./ai.llm";
 import { logger } from "../utils/logger";
+import YAML from "yaml";
 
-/**
- * Types
- */
+
 export type AiRecommendationResult = {
   yaml: string;
   source: "llm" | "heuristic";
@@ -112,17 +10,15 @@ export type AiRecommendationResult = {
   message?: string;
 };
 
-
 export type AiExplainInput = {
   config: any;
   plan: any;
 };
 
-import YAML from "yaml";
 
-function parseYamlSafely(text: string): any {
-  return YAML.parse(text);
-}
+// function parseYamlSafely(text: string): any {
+//   return YAML.parse(text);
+// }
 
 function extractGlobalColumnsFromRules(rules: any[]): string[] {
   const set = new Set<string>();
@@ -352,264 +248,19 @@ const ALLOWED_STRATEGIES = [
 
 
 
-/**
- * ---------------------------------------------------------
- * STEP 3 AI — Recommend global column_strategy (YAML)
- * ---------------------------------------------------------
- *
- * This is advisory only.
- * Output is copy-pasteable into anonymizer.config.yaml
- */
-// export async function recommendColumnStrategyYAML(input: {
-//   config: any;
-//   samples: any;
-//   tablesList: string[];
-// }): Promise<AiRecommendationResult> {
-//   const { config } = input;
-
-//   // Extract all unique column names from rules (GLOBAL)
-//   //const allColumns = extractGlobalColumnsFromRules(config.rules);
-
-//   const allColumnsFull = extractGlobalColumnsFromRules(config.rules);
-
-// const MAX_COLUMNS = 300;
-// const allColumns =
-//   allColumnsFull.length > MAX_COLUMNS
-//     ? allColumnsFull.slice(0, MAX_COLUMNS)
-//     : allColumnsFull;
-
-
-// //   const prompt = `
-// // You are a data privacy engineer.
-
-// // Task:
-// // Recommend a GLOBAL "column_strategy" block for anonymizer.config.yaml.
-
-// // STRICT RULES:
-// // - Output ONLY valid YAML
-// // - Top-level key MUST be: column_strategy
-// // - Use ONLY the column names provided
-// // - Do NOT invent columns
-// // - Do NOT repeat a column under multiple strategies
-// // - Prefer KEEP unless clearly sensitive
-// // - Do NOT include explanations
-
-// // Available strategies:
-// // KEEP
-// // EMAIL_FAKE
-// // HASH_SHA256
-// // REDACT
-// // SET_NULL
-// // TRUNCATE
-
-// // Columns:
-// // ${allColumns.map((c) => `- ${c}`).join("\n")}
-
-// // Return YAML in this exact format:
-
-// // column_strategy:
-// //   KEEP:
-// //     - example_column
-// //   EMAIL_FAKE:
-// //     - example_column
-// //   HASH_SHA256:
-// //     - example_column
-// //   REDACT:
-// //     - example_column
-// //   SET_NULL:
-// //     - example_column
-// // `;
-//   const prompt = `
-// You are a senior data privacy engineer.
-
-// Generate a GLOBAL "column_strategy" YAML block.
-
-// STRICT RULES:
-// - Output ONLY valid YAML.
-// - Top-level key must be: column_strategy
-// - Include EVERY column listed below.
-// - Each column must appear EXACTLY ONCE.
-// - Do NOT invent columns.
-// - Do NOT repeat columns.
-// - Use ONLY these strategies:
-//   KEEP
-//   EMAIL_FAKE
-//   HASH_SHA256
-//   REDACT
-//   SET_NULL
-// - Return YAML in this exact format:
-//     column_strategy:
-//       KEEP:
-//         - example_column1
-//         - example_column2
-//         .....
-//       EMAIL_FAKE:
-//         - example_column1
-//         - example_column2
-//         .....
-//       HASH_SHA256:
-//         - example_column1
-//         - example_column2
-//         .....
-//       REDACT:
-//         - example_column1
-//         - example_column2
-//       SET_NULL:
-//         - example_column1
-//         - example_column2
-// - If unsure, default to KEEP.
-// - Use proper YAML list format with "-" (not inline arrays).
-
-// Columns (unique across all tables):
-
-// ${allColumns.join("\n")}
-
-// Return YAML only.
-// `;
-
-//   try {
-//     const llmOutput = await llmComplete(prompt);
-
-//     if (!llmOutput) {
-//       logger.warn("LLM unavailable — returning fallback YAML");
-//       return {
-//         yaml: fallbackRecommendationYamlFromRules(config.rules),
-//         source: "heuristic",
-//       };
-//     }
-
-//     return {
-//       yaml: llmOutput.trim(),
-//       source: "llm",
-//     };
-//   } catch {
-//     logger.warn("LLM recommendation failed — fallback used");
-//     return {
-//       yaml: fallbackRecommendationYamlFromRules(config.rules),
-//       source: "heuristic",
-//     };
-//   }
-// }
-
-
-/**
- * Fallback YAML if LLM is unavailable
- */
-// function fallbackRecommendationYamlFromRules(rules: any[]): string {
-//   const grouped: Record<string, Set<string>> = {
-//     KEEP: new Set(),
-//     EMAIL_FAKE: new Set(),
-//     HASH_SHA256: new Set(),
-//     REDACT: new Set(),
-//     SET_NULL: new Set(),
-//     TRUNCATE: new Set(),
-//   };
-
-//   for (const rule of rules) {
-//     for (const col of rule.columns ?? []) {
-//       grouped[col.strategy]?.add(col.column);
-//     }
-//   }
-
-//   const lines: string[] = [];
-//   lines.push("column_strategy:");
-
-//   for (const [strategy, cols] of Object.entries(grouped)) {
-//     if (cols.size === 0) continue;
-
-//     lines.push(`  ${strategy}:`);
-//     for (const c of Array.from(cols).sort()) {
-//       lines.push(`    - ${c}`);
-//     }
-//   }
-
-//   return lines.join("\n");
-// }
-
-function fallbackRecommendationYamlFromRules(rules: any[]): string {
-  const allColumns = extractGlobalColumnsFromRules(rules);
-
-  const globalMap: Record<string, string> = {};
-
-  for (const col of allColumns) {
-    globalMap[col] = deterministicStrategy(col);
-  }
-
-  return buildFinalYaml(globalMap);
-}
-
-
 // function fallbackRecommendationYamlFromRules(rules: any[]): string {
 //   const allColumns = extractGlobalColumnsFromRules(rules);
 
-//   const grouped: Record<string, string[]> = {
-//     KEEP: [],
-//     EMAIL_FAKE: [],
-//     HASH_SHA256: [],
-//     REDACT: [],
-//     SET_NULL: [],
-//   };
+//   const globalMap: Record<string, string> = {};
 
 //   for (const col of allColumns) {
-//     const lc = col.toLowerCase();
-
-//     if (lc.includes("email")) {
-//       grouped.EMAIL_FAKE.push(col);
-//     } else if (
-//       lc.includes("password") ||
-//       lc.includes("token") ||
-//       lc.includes("secret")
-//     ) {
-//       grouped.SET_NULL.push(col);
-//     } else if (
-//       lc.includes("phone") ||
-//       lc.includes("mobile") ||
-//       lc.includes("username") ||
-//       lc.includes("user_id")
-//     ) {
-//       grouped.HASH_SHA256.push(col);
-//     } else if (
-//       lc.includes("name") ||
-//       lc.includes("address") ||
-//       lc.includes("notes")
-//     ) {
-//       grouped.REDACT.push(col);
-//     } else {
-//       grouped.KEEP.push(col);
-//     }
+//     globalMap[col] = deterministicStrategy(col);
 //   }
 
-//   const lines: string[] = [];
-//   lines.push("column_strategy:");
-
-//   for (const strategy of [
-//     "KEEP",
-//     "EMAIL_FAKE",
-//     "HASH_SHA256",
-//     "REDACT",
-//     "SET_NULL",
-//   ]) {
-//     const cols = grouped[strategy].sort();
-//     if (!cols.length) continue;
-
-//     lines.push(`  ${strategy}:`);
-//     for (const col of cols) {
-//       lines.push(`    - ${col}`);
-//     }
-//   }
-
-//   return lines.join("\n");
+//   return buildFinalYaml(globalMap);
 // }
 
 
-/**
- * ---------------------------------------------------------
- * STEP 5 AI — Explain My Data Safety (proof.md)
- * ---------------------------------------------------------
- *
- * Client-facing explanation.
- * Based ONLY on actual applied strategies.
- */
 export async function explainSafety(
   input: AiExplainInput
 ): Promise<string> {
@@ -664,9 +315,7 @@ Return markdown only.
   }
 }
 
-/**
- * Deterministic fallback explanation
- */
+
 function fallbackExplanation(plan: any, denylisted: string[]): string {
   const strategyCount: Record<string, number> = {};
 
